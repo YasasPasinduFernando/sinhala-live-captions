@@ -150,6 +150,8 @@ abstract final class AppStrings {
       'ආකෘතිය බාගැනීමට පමණක් අන්තර්ජාලය අවශ්‍යයි.';
   static const networkOnline = 'දුරකථනය අන්තර්ජාලයට සම්බන්ධයි';
   static const networkOffline = 'දුරකථනය අන්තර්ජාලයට සම්බන්ධ නැත';
+  static const internetShortDevice = 'අන්තර්ජාලය භාවිතා වේ';
+  static const internetShortWhisper = 'අන්තර්ජාලය නොබැඳි';
   static const networkNeeded =
       'සිංහල හඳුනාගැනීමට අන්තර්ජාල සම්බන්ධතාවක් අවශ්‍යයි.';
 

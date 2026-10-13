@@ -71,7 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 key: SettingsScreen.fontSliderKey,
                 min: AppSettingsController.minFontSize,
                 max: AppSettingsController.maxFontSize,
-                divisions: 12,
+                divisions: 24,
                 value: settings.fontSize,
                 label: settings.fontSize.round().toString(),
                 onChanged: settings.setFontSize,

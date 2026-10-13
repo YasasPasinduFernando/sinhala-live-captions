@@ -17,8 +17,8 @@ class AppSettingsController extends ChangeNotifier {
   static const whisperModelKey = 'whisper_model_id';
 
   static const minFontSize = 24.0;
-  static const maxFontSize = 48.0;
-  static const defaultFontSize = 30.0;
+  static const maxFontSize = 72.0;
+  static const defaultFontSize = 48.0;
 
   SharedPreferences? _preferences;
   double fontSize = defaultFontSize;
@@ -34,7 +34,12 @@ class AppSettingsController extends ChangeNotifier {
       return;
     }
     final storedSize = _preferences!.getDouble(fontSizeKey);
-    fontSize = (storedSize ?? defaultFontSize).clamp(minFontSize, maxFontSize);
+    var size = (storedSize ?? defaultFontSize).clamp(minFontSize, maxFontSize);
+    if (storedSize != null && storedSize < 40) {
+      size = defaultFontSize;
+      await _preferences!.setDouble(fontSizeKey, size);
+    }
+    fontSize = size;
     theme = _preferences!.getString(themeKey) == ThemePreference.dark.name
         ? ThemePreference.dark
         : ThemePreference.light;

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart';
 import 'package:whisper_cpp_flutter_plus/whisper_cpp_flutter_plus.dart';
 
 import 'app/sinhala_captions_app.dart';
@@ -10,9 +9,7 @@ import 'services/speech/android_live_speech_client.dart';
 import 'services/speech/caption_session_controller.dart';
 import 'services/speech/catalog_whisper_model_store.dart';
 import 'services/speech/device_speech_engine.dart';
-import 'services/speech/sinhala_locale_probe.dart';
 import 'services/speech/plugin_whisper_runtime.dart';
-import 'services/speech/speech_to_text_device_client.dart';
 import 'services/speech/voice_typing.dart';
 import 'services/speech/whisper_model_controller.dart';
 import 'services/speech/whisper_speech_engine.dart';
@@ -48,7 +45,6 @@ Future<void> main() async {
       settings: settings,
       session: session,
       models: models,
-      localeProbe: SinhalaLocaleProbe(SpeechToTextDeviceClient(SpeechToText())),
       network: network,
     ),
   );

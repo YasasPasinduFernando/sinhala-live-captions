@@ -7,16 +7,13 @@ import '../../features/settings/app_settings_controller.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../services/network/network_status.dart';
 import '../../services/speech/caption_session_controller.dart';
-import '../../services/speech/sinhala_locale_probe.dart';
 import '../../services/speech/whisper_model_controller.dart';
-import 'network_usage_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
     required this.settings,
     required this.session,
     required this.models,
-    this.localeProbe,
     this.network,
     super.key,
   });
@@ -24,7 +21,6 @@ class HomeScreen extends StatelessWidget {
   final AppSettingsController settings;
   final CaptionSessionController session;
   final WhisperModelController models;
-  final SinhalaLocaleProbe? localeProbe;
   final NetworkStatus? network;
 
   static const startKey = Key('start-captions');
@@ -53,11 +49,6 @@ class HomeScreen extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                AppStrings.homeIntro,
-                style: theme.textTheme.titleLarge?.copyWith(height: 1.4),
-              ),
               const SizedBox(height: 20),
               FilledButton.icon(
                 key: startKey,
@@ -67,8 +58,6 @@ class HomeScreen extends StatelessWidget {
                       builder: (_) => LiveCaptionsScreen(
                         settings: settings,
                         session: session,
-                        localeProbe: localeProbe,
-                        network: network,
                       ),
                     ),
                   );
@@ -93,7 +82,7 @@ class HomeScreen extends StatelessWidget {
                 label: const Text(AppStrings.settings),
               ),
               const SizedBox(height: 20),
-              NetworkUsageCard(mode: settings.mode, network: network),
+              _NetworkLine(mode: settings.mode, network: network),
               const SizedBox(height: 24),
               Text(
                 AppStrings.currentMode,
@@ -109,14 +98,12 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
               _ModeChoice(
                 title: AppStrings.deviceMode,
-                body: AppStrings.deviceExplanation,
                 selected: settings.mode == RecognitionMode.device,
                 onPressed: () => settings.setMode(RecognitionMode.device),
               ),
               const SizedBox(height: 12),
               _ModeChoice(
                 title: AppStrings.whisperMode,
-                body: AppStrings.offlineExplanation,
                 selected: settings.mode == RecognitionMode.whisper,
                 onPressed: () => settings.setMode(RecognitionMode.whisper),
               ),
@@ -128,9 +115,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              _InfoBox(text: models.statusLabel),
-              const SizedBox(height: 16),
-              const _InfoBox(text: AppStrings.phaseNotice),
+              Text(models.statusLabel, style: theme.textTheme.titleMedium),
             ],
           );
         },
@@ -139,16 +124,39 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+class _NetworkLine extends StatelessWidget {
+  const _NetworkLine({required this.mode, required this.network});
+
+  final RecognitionMode mode;
+  final NetworkStatus? network;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final online = network?.online;
+    final usage = mode == RecognitionMode.device
+        ? AppStrings.internetShortDevice
+        : AppStrings.internetShortWhisper;
+    final link = switch (online) {
+      true => AppStrings.networkOnline,
+      false => AppStrings.networkOffline,
+      null => null,
+    };
+    return Text(
+      link == null ? usage : '$usage · $link',
+      style: theme.textTheme.titleMedium,
+    );
+  }
+}
+
 class _ModeChoice extends StatelessWidget {
   const _ModeChoice({
     required this.title,
-    required this.body,
     required this.selected,
     required this.onPressed,
   });
 
   final String title;
-  final String body;
   final bool selected;
   final VoidCallback onPressed;
 
@@ -193,41 +201,10 @@ class _ModeChoice extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                const SizedBox(height: 8),
-                Text(body, style: theme.textTheme.titleMedium),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _InfoBox extends StatelessWidget {
-  const _InfoBox({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.onSurface),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, color: theme.colorScheme.onSurface),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(text, style: theme.textTheme.titleMedium),
-          ),
-        ],
       ),
     );
   }

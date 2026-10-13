@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,11 +11,8 @@ import 'package:sinhala_live_captions/features/settings/app_settings_controller.
 import 'package:sinhala_live_captions/features/settings/settings_screen.dart';
 import 'package:sinhala_live_captions/services/speech/caption_session_controller.dart';
 import 'package:sinhala_live_captions/services/speech/demo_speech_engine.dart';
-import 'package:sinhala_live_captions/services/speech/sinhala_locale_probe.dart';
 import 'package:sinhala_live_captions/services/speech/speech_engine.dart';
 import 'package:sinhala_live_captions/services/speech/whisper_model_controller.dart';
-
-import 'support/fake_device_speech_client.dart';
 import 'support/memory_whisper_model_store.dart';
 
 void main() {
@@ -50,9 +45,9 @@ void main() {
   testWidgets('home explains device and offline limits', (tester) async {
     await pumpApp(tester);
     expect(find.text(AppStrings.title), findsWidgets);
-    expect(find.text(AppStrings.sinhalaTitle), findsOneWidget);
-    await tester.scrollUntilVisible(find.text(AppStrings.phaseNotice), 300);
-    expect(find.text(AppStrings.phaseNotice), findsOneWidget);
+    expect(find.text(AppStrings.sinhalaTitle), findsWidgets);
+    expect(find.text(AppStrings.deviceMode), findsWidgets);
+    await tester.scrollUntilVisible(find.text(AppStrings.modelStatus), 200);
     expect(find.text(AppStrings.modelStatus), findsOneWidget);
     expect(find.byIcon(Icons.mic), findsNothing);
     expect(find.byIcon(Icons.mic_none), findsNothing);
@@ -63,7 +58,7 @@ void main() {
     await tester.tap(find.byKey(HomeScreen.startKey));
     await tester.pumpAndSettle();
     expect(find.byKey(LiveCaptionsScreen.startKey), findsOneWidget);
-    expect(find.text(AppStrings.captionsIdleNote), findsOneWidget);
+    expect(find.text(AppStrings.emptyCaptions), findsOneWidget);
 
     await tester.tap(find.byTooltip(AppStrings.back));
     await tester.pumpAndSettle();
@@ -143,7 +138,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(LiveCaptionsScreen.startKey));
     await tester.pump();
-    expect(find.text(AppStrings.demoShowing), findsOneWidget);
     expect(harness.session.capabilities?.usesMicrophone, isFalse);
 
     await tester.pump(const Duration(milliseconds: 120));
@@ -162,7 +156,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text(AppStrings.demoConfirmed), findsNothing);
-    expect(find.text(AppStrings.stopped), findsOneWidget);
+    expect(find.byKey(LiveCaptionsScreen.startKey), findsOneWidget);
   });
 
   testWidgets('clear removes demo captions', (tester) async {
@@ -236,87 +230,7 @@ void main() {
     await pumpApp(tester);
     await tester.scrollUntilVisible(find.byKey(HomeScreen.startKey), 200);
     expect(find.byKey(HomeScreen.startKey), findsOneWidget);
-    await tester.scrollUntilVisible(find.text(AppStrings.phaseNotice), 200);
-    expect(find.text(AppStrings.phaseNotice), findsOneWidget);
+    expect(find.text(AppStrings.deviceMode), findsWidgets);
     expect(tester.takeException(), isNull);
   });
-
-  testWidgets('diagnostic button shows progress and the locale error', (
-    tester,
-  ) async {
-    final harness = await _probeScreen(tester);
-    addTearDown(harness.session.dispose);
-    addTearDown(harness.settings.dispose);
-    harness.client
-      ..scriptedError = 'error_language_unavailable'
-      ..listenGate = Completer<void>();
-
-    await tester.tap(find.byKey(LiveCaptionsScreen.localeProbeKey));
-    await tester.pump();
-    expect(find.textContaining('Requesting si-LK'), findsOneWidget);
-    harness.client.listenGate!.complete();
-
-    await tester.pumpAndSettle();
-    expect(find.textContaining('locale unsupported'), findsOneWidget);
-    expect(harness.client.requestedLocales, ['si-LK', 'si_LK']);
-    expect(harness.client.listening, isFalse);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('a silent diagnostic reports timeout inside the scroll view', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(320, 560);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final harness = await _probeScreen(
-      tester,
-      locales: List<String>.generate(30, (index) => 'en_$index'),
-    );
-    addTearDown(harness.session.dispose);
-    addTearDown(harness.settings.dispose);
-    harness.client.silentListen = true;
-
-    await tester.tap(find.byKey(LiveCaptionsScreen.localeProbeKey));
-    await tester.pumpAndSettle();
-
-    expect(tester.takeException(), isNull);
-    await tester.ensureVisible(find.textContaining('si_LK: timeout'));
-    expect(find.textContaining('si_LK: timeout'), findsOneWidget);
-    expect(harness.client.listening, isFalse);
-  });
-}
-
-Future<
-  ({
-    AppSettingsController settings,
-    CaptionSessionController session,
-    FakeDeviceSpeechClient client,
-  })
->
-_probeScreen(WidgetTester tester, {List<String>? locales}) async {
-  SharedPreferences.setMockInitialValues({});
-  final settings = AppSettingsController();
-  await settings.load();
-  final session = CaptionSessionController(
-    engineFactory: (mode) => DemoSpeechEngine(mode: mode),
-  );
-  final client = FakeDeviceSpeechClient()
-    ..locales = locales ?? ['en_US'];
-  await tester.pumpWidget(
-    MaterialApp(
-      home: LiveCaptionsScreen(
-        settings: settings,
-        session: session,
-        localeProbe: SinhalaLocaleProbe(
-          client,
-          attemptTimeout: const Duration(milliseconds: 40),
-          pollInterval: const Duration(milliseconds: 1),
-        ),
-      ),
-    ),
-  );
-  await tester.pump();
-  return (settings: settings, session: session, client: client);
 }

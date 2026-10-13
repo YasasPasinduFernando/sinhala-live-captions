@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_strings.dart';
 
-/// Scrollable confirmed captions plus a separate provisional line.
+/// Large reading view. Older lines stay readable; the newest line is biggest.
 class CaptionView extends StatefulWidget {
   const CaptionView({
     required this.confirmedText,
@@ -49,7 +49,7 @@ class _CaptionViewState extends State<CaptionView> {
       }
       final position = _scroll.position;
       final distance = position.maxScrollExtent - position.pixels;
-      if (distance < 80) {
+      if (distance < 120) {
         _scroll.jumpTo(position.maxScrollExtent);
         if (_showJump) {
           setState(() => _showJump = false);
@@ -63,101 +63,108 @@ class _CaptionViewState extends State<CaptionView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final captionStyle = TextStyle(
+    final ink = theme.brightness == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF111111);
+    final confirmed = widget.confirmedText.trim();
+    final provisional = widget.provisional.trim();
+    final lines = confirmed
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    final older = lines.length > 1
+        ? lines.sublist(0, lines.length - 1).join('\n')
+        : '';
+    final latest = lines.isEmpty ? '' : lines.last;
+    final latestStyle = TextStyle(
       fontSize: widget.fontSize,
       height: 1.45,
-      color: theme.colorScheme.onSurface,
-      fontWeight: FontWeight.w600,
+      color: ink,
+      fontWeight: FontWeight.w800,
     );
-    final confirmed = widget.confirmedText.trim();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          AppStrings.confirmedLabel,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border.all(color: theme.colorScheme.onSurface, width: 2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Stack(
-              children: [
-                Scrollbar(
-                  controller: _scroll,
-                  child: SingleChildScrollView(
-                    controller: _scroll,
-                    padding: const EdgeInsets.all(16),
-                    child: confirmed.isEmpty
-                        ? Text(
-                            AppStrings.emptyCaptions,
-                            key: CaptionView.confirmedKey,
-                            style: captionStyle,
-                          )
-                        : Text(
-                            confirmed,
-                            key: CaptionView.confirmedKey,
-                            style: captionStyle,
-                            softWrap: true,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Stack(
+          children: [
+            Scrollbar(
+              controller: _scroll,
+              child: SingleChildScrollView(
+                controller: _scroll,
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight - 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (older.isNotEmpty) ...[
+                        Text(
+                          older,
+                          style: latestStyle.copyWith(
+                            fontSize: widget.fontSize * 0.62,
+                            height: 1.4,
+                            fontWeight: FontWeight.w600,
+                            color: ink.withValues(alpha: 0.62),
                           ),
+                          softWrap: true,
+                        ),
+                        const SizedBox(height: 18),
+                      ],
+                      if (latest.isNotEmpty)
+                        Text(
+                          latest,
+                          key: CaptionView.confirmedKey,
+                          style: latestStyle,
+                          softWrap: true,
+                        )
+                      else if (provisional.isEmpty)
+                        Text(
+                          AppStrings.emptyCaptions,
+                          key: CaptionView.confirmedKey,
+                          style: latestStyle.copyWith(
+                            color: ink.withValues(alpha: 0.28),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      if (provisional.isNotEmpty) ...[
+                        if (latest.isNotEmpty) const SizedBox(height: 14),
+                        Text(
+                          provisional,
+                          key: CaptionView.provisionalKey,
+                          style: latestStyle.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          softWrap: true,
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-                if (_showJump)
-                  Positioned(
-                    right: 12,
-                    bottom: 12,
-                    child: FilledButton(
-                      key: CaptionView.jumpKey,
-                      onPressed: () {
-                        if (!_scroll.hasClients) {
-                          return;
-                        }
-                        _scroll.jumpTo(_scroll.position.maxScrollExtent);
-                        setState(() => _showJump = false);
-                      },
-                      child: const Text(AppStrings.jumpToLatest),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          AppStrings.provisionalLabel,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Flexible(
-          child: SingleChildScrollView(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border.all(color: theme.colorScheme.onSurface),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(
-                  widget.provisional.trim().isEmpty
-                      ? AppStrings.emptyCaptions
-                      : widget.provisional,
-                  key: CaptionView.provisionalKey,
-                  style: captionStyle.copyWith(fontWeight: FontWeight.w500),
-                  softWrap: true,
                 ),
               ),
             ),
-          ),
-        ),
-      ],
+            if (_showJump)
+              Positioned(
+                right: 12,
+                bottom: 4,
+                child: IconButton.filled(
+                  key: CaptionView.jumpKey,
+                  tooltip: AppStrings.jumpToLatest,
+                  onPressed: () {
+                    if (!_scroll.hasClients) {
+                      return;
+                    }
+                    _scroll.jumpTo(_scroll.position.maxScrollExtent);
+                    setState(() => _showJump = false);
+                  },
+                  icon: const Icon(Icons.arrow_downward),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

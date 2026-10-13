@@ -6,7 +6,6 @@ import '../features/home/home_screen.dart';
 import '../features/settings/app_settings_controller.dart';
 import '../services/network/network_status.dart';
 import '../services/speech/caption_session_controller.dart';
-import '../services/speech/sinhala_locale_probe.dart';
 import '../services/speech/whisper_model_controller.dart';
 import 'app_theme.dart';
 
@@ -15,7 +14,6 @@ class SinhalaCaptionsApp extends StatefulWidget {
     required this.settings,
     required this.session,
     required this.models,
-    this.localeProbe,
     this.network,
     super.key,
   });
@@ -23,7 +21,6 @@ class SinhalaCaptionsApp extends StatefulWidget {
   final AppSettingsController settings;
   final CaptionSessionController session;
   final WhisperModelController models;
-  final SinhalaLocaleProbe? localeProbe;
   final NetworkStatus? network;
 
   @override
@@ -83,7 +80,6 @@ class _SinhalaCaptionsAppState extends State<SinhalaCaptionsApp>
             settings: settings,
             session: widget.session,
             models: widget.models,
-            localeProbe: widget.localeProbe,
             network: widget.network,
           ),
         );
